@@ -1,13 +1,7 @@
 // src/modules/survey/domain/survey-schedule.ts
-// Defines survey scheduling rules and derives availability from configured timestamps.
+// Defines immutable survey scheduling rules and derives availability from configured timestamps.
 
 export type SurveyAvailability = "UPCOMING" | "OPEN" | "SYNC_ONLY" | "CLOSED";
-
-export interface SurveySchedule {
-  readonly opensAt: Date;
-  readonly closesAt: Date;
-  readonly acceptSubmissionsUntil: Date;
-}
 
 export class SurveyScheduleError extends Error {
   constructor(message: string) {
@@ -16,63 +10,100 @@ export class SurveyScheduleError extends Error {
   }
 }
 
+export class SurveySchedule {
+  readonly #opensAtMs: number;
+  readonly #closesAtMs: number;
+  readonly #acceptSubmissionsUntilMs: number;
+
+  private constructor(
+    opensAtMs: number,
+    closesAtMs: number,
+    acceptSubmissionsUntilMs: number,
+  ) {
+    this.#opensAtMs = opensAtMs;
+    this.#closesAtMs = closesAtMs;
+    this.#acceptSubmissionsUntilMs = acceptSubmissionsUntilMs;
+  }
+
+  static create(input: {
+    opensAt: Date;
+    closesAt: Date;
+    acceptSubmissionsUntil: Date;
+  }): SurveySchedule {
+    const opensAtMs = getValidTimestamp(input.opensAt, "opensAt");
+    const closesAtMs = getValidTimestamp(input.closesAt, "closesAt");
+    const acceptSubmissionsUntilMs = getValidTimestamp(
+      input.acceptSubmissionsUntil,
+      "acceptSubmissionsUntil",
+    );
+
+    if (opensAtMs >= closesAtMs) {
+      throw new SurveyScheduleError("opensAt must be earlier than closesAt.");
+    }
+
+    if (closesAtMs > acceptSubmissionsUntilMs) {
+      throw new SurveyScheduleError(
+        "closesAt must be earlier than or equal to acceptSubmissionsUntil.",
+      );
+    }
+
+    return new SurveySchedule(
+      opensAtMs,
+      closesAtMs,
+      acceptSubmissionsUntilMs,
+    );
+  }
+
+  get opensAt(): Date {
+    return new Date(this.#opensAtMs);
+  }
+
+  get closesAt(): Date {
+    return new Date(this.#closesAtMs);
+  }
+
+  get acceptSubmissionsUntil(): Date {
+    return new Date(this.#acceptSubmissionsUntilMs);
+  }
+
+  availabilityAt(now: Date): SurveyAvailability {
+    const nowMs = getValidTimestamp(now, "now");
+
+    if (nowMs < this.#opensAtMs) {
+      return "UPCOMING";
+    }
+
+    if (nowMs < this.#closesAtMs) {
+      return "OPEN";
+    }
+
+    if (nowMs <= this.#acceptSubmissionsUntilMs) {
+      return "SYNC_ONLY";
+    }
+
+    return "CLOSED";
+  }
+}
+
 export function createSurveySchedule(input: {
   opensAt: Date;
   closesAt: Date;
   acceptSubmissionsUntil: Date;
 }): SurveySchedule {
-  const opensAt = copyValidDate(input.opensAt, "opensAt");
-  const closesAt = copyValidDate(input.closesAt, "closesAt");
-  const acceptSubmissionsUntil = copyValidDate(
-    input.acceptSubmissionsUntil,
-    "acceptSubmissionsUntil",
-  );
-
-  if (opensAt.getTime() >= closesAt.getTime()) {
-    throw new SurveyScheduleError("opensAt must be earlier than closesAt.");
-  }
-
-  if (closesAt.getTime() > acceptSubmissionsUntil.getTime()) {
-    throw new SurveyScheduleError(
-      "closesAt must be earlier than or equal to acceptSubmissionsUntil.",
-    );
-  }
-
-  return Object.freeze({
-    opensAt,
-    closesAt,
-    acceptSubmissionsUntil,
-  });
+  return SurveySchedule.create(input);
 }
 
 export function getSurveyAvailability(
   schedule: SurveySchedule,
   now: Date,
 ): SurveyAvailability {
-  const currentTime = copyValidDate(now, "now").getTime();
-  const opensAt = schedule.opensAt.getTime();
-  const closesAt = schedule.closesAt.getTime();
-  const acceptSubmissionsUntil = schedule.acceptSubmissionsUntil.getTime();
-
-  if (currentTime < opensAt) {
-    return "UPCOMING";
-  }
-
-  if (currentTime < closesAt) {
-    return "OPEN";
-  }
-
-  if (currentTime <= acceptSubmissionsUntil) {
-    return "SYNC_ONLY";
-  }
-
-  return "CLOSED";
+  return schedule.availabilityAt(now);
 }
 
-function copyValidDate(value: Date, fieldName: string): Date {
+function getValidTimestamp(value: Date, fieldName: string): number {
   if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
     throw new SurveyScheduleError(`${fieldName} must be a valid Date.`);
   }
 
-  return new Date(value.getTime());
+  return value.getTime();
 }

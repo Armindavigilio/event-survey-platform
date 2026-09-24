@@ -2,9 +2,9 @@
 
 **Proyecto:** Event Survey Platform  
 **Documento:** Especificación funcional y técnica del módulo `survey`  
-**Estado:** Baseline funcional previa al diseño de estructura física  
-**Versión:** 0.1.0  
-**Fecha:** 2026-09-24
+**Estado:** Núcleo implementado y verificado; integración de infraestructura pendiente
+**Versión:** 0.2.0
+**Fecha:** 2026-09-25
 
 ---
 
@@ -316,17 +316,18 @@ flowchart TD
     I --> J[SubmitSurvey]
     J --> K{Valid?}
     K -->|No| H
-    K -->|Yes| L[Create immutable SurveySubmission]
-    L --> M[Generate submissionId]
-    M --> N[Attempt transport]
+    K -->|Yes| L[Generate ID and create immutable SurveySubmission]
+    L --> M[Persist locally as PENDING]
+    M --> N[Gateway calls AcceptSurveySubmission]
 
     N -->|Accepted| O[SYNCED]
     N -->|Transport unavailable| P[PENDING]
 
     P --> Q[SynchronizePendingSubmissions]
-    Q -->|Accepted / Already accepted| O
-    Q -->|Temporary failure| P
-    Q -->|Terminal rejection| R[REJECTED]
+    Q --> T[Gateway calls AcceptSurveySubmission again]
+    T -->|Accepted / Already accepted| O
+    T -->|Temporary failure| P
+    T -->|Terminal rejection| R[REJECTED]
 ```
 
 ---
@@ -439,7 +440,7 @@ Sí pueden sincronizarse submissions ya finalizadas previamente.
 
 ### `CLOSED`
 
-No se aceptan nuevas participaciones ni nuevas sincronizaciones.
+No se insertan nuevas participaciones. Un reintento idéntico de una respuesta ya persistida devuelve `ALREADY_ACCEPTED` con su `acceptedAt` original, incluso tras el cierre; esto confirma una aceptación anterior, no crea una nueva.
 
 ## 8.4. Autoridad temporal
 
@@ -468,7 +469,7 @@ SurveyDraft
 
 Características:
 
-- mutable;
+- editable mediante reemplazo del valor (propiedades `readonly`, apropiadas para estado React);
 - puede estar incompleto;
 - descartable;
 - no necesita `submissionId`;
@@ -763,6 +764,8 @@ validate
 generate submissionId
    ↓
 create SurveySubmission
+   ↓
+savePending (durable before sending)
    ↓
 attempt transport
    ├── success → SYNCED
@@ -1226,7 +1229,7 @@ La categoría seleccionada debe existir dentro de `respondentCategories` de la e
 
 Los casos de uso han revelado necesidades reales que posteriormente podrán convertirse en `ports`.
 
-Todavía no se consideran contratos finales.
+Los contratos implementados se detallan en la sección 34; las tecnologías siguen abiertas.
 
 ## 23.1. Obtención de encuesta
 
@@ -1236,10 +1239,10 @@ Necesidad:
 obtener Survey por eventId
 ```
 
-Nombre provisional:
+Contrato implementado:
 
 ```text
-SurveyDefinitionProvider
+SurveyProvider
 ```
 
 ## 23.2. Persistencia autoritativa de submissions
@@ -1247,11 +1250,11 @@ SurveyDefinitionProvider
 Necesidades:
 
 ```text
-buscar submission por submissionId
-guardar submission
+findById(submissionId)
+saveIfAbsent(record) — inserción atómica o registro existente
 ```
 
-Nombre provisional:
+Contrato implementado:
 
 ```text
 SurveySubmissionRepository
@@ -1266,7 +1269,7 @@ enviar SurveySubmission
 recibir resultado de aceptación
 ```
 
-Nombre provisional:
+Contrato implementado:
 
 ```text
 SurveySubmissionGateway
@@ -1283,7 +1286,7 @@ marcar synced
 marcar rejected
 ```
 
-Nombre provisional preferible:
+Contrato implementado:
 
 ```text
 LocalSubmissionStore
@@ -1315,7 +1318,7 @@ Necesidad:
 obtener tiempo autoritativo
 ```
 
-La implementación y el lugar exacto del port se decidirán durante el diseño de estructura.
+Se inyecta `now: Date` en cada ejecución, sin port de reloj adicional. En servidor lo aporta la composición confiable; nunca se toma del cuerpo HTTP. En cliente requiere una política de estimación basada en tiempo servidor, aún pendiente de integración.
 
 ---
 
@@ -1443,7 +1446,7 @@ La razón general es YAGNI y la necesidad de preservar un modelo proporcional al
 
 # 28. Estrategia de pruebas derivada del modelo
 
-Todavía no se selecciona framework de testing, pero el diseño deberá permitir cubrir al menos:
+Se usa el runner integrado de Node y TypeScript ya instalado mediante `pnpm test:survey`, sin dependencias nuevas. Las pruebas aisladas verifican los contratos con dobles en memoria; los adaptadores reales necesitarán pruebas propias. Cobertura requerida:
 
 ## 28.1. `SurveySchedule`
 
@@ -1533,7 +1536,7 @@ service
 caso de uso
 ```
 
-La estructura física del módulo se definirá en la siguiente fase.
+La estructura física verificada se documenta en la sección 34.
 
 ---
 
@@ -1632,62 +1635,126 @@ Si un cambio afecta una decisión arquitectónica transversal, también deberá 
 
 ---
 
-# 33. Estado al cierre de esta fase
+# 33. Estado de la revisión secuencial — 2026-09-25
 
-## Cerrado
+1. **Inventario:** existen 3 archivos de dominio, 6 de aplicación (cinco casos de uso
+   y el borrador) y 5 puertos. La versión 0.1 no contenía un árbol físico prescriptivo;
+   estaba desactualizada respecto a la implementación, no incumplida por ese árbol.
+2. **Lógica:** pruebas de los cinco casos de uso, fronteras temporales, validación,
+   cola, concurrencia e idempotencia. Se corrigieron la disponibilidad caducada y
+   la confirmación idempotente tras el cierre.
+3. **API pública:** `src/modules/survey/index.ts` expone símbolos explícitos para
+   composición, modelos y contratos. No exporta helpers internos ni infraestructura.
 
-- alcance funcional inicial;
-- actor principal;
-- anonimato;
-- categorías;
-- modelo Likert inicial;
-- obligatoriedad de respuestas;
-- ausencia de condicionales;
-- estabilidad de encuesta durante evento;
-- un survey por event;
-- borrador editable;
-- submission inmutable;
-- generación de `submissionId`;
-- idempotencia;
-- conflicto por mismo ID y distinto contenido;
-- cola offline;
-- dispositivo compartido;
-- estados de sincronización;
-- política FIFO inicial;
-- clasificación de fallos;
-- política temporal configurable;
-- tiempo servidor autoritativo;
-- cinco casos de uso;
-- modelo de dominio inicial;
-- aggregates separados;
-- necesidades externas descubiertas.
+El núcleo es verificable en memoria. No constituye todavía una encuesta funcional
+integrada en la web: faltan adaptadores, transporte, composición y presentación.
 
-## Pendiente para la siguiente fase
-
-Diseñar la estructura real de:
+# 34. Estructura física y contratos verificados
 
 ```text
 src/modules/survey/
+├── index.ts
+├── domain/
+│   ├── survey.ts
+│   ├── survey-schedule.ts
+│   └── survey-submission.ts
+├── application/
+│   ├── survey-draft.ts
+│   ├── get-active-survey/get-active-survey.ts
+│   ├── start-survey-participation/start-survey-participation.ts
+│   ├── submit-survey/submit-survey.ts
+│   ├── accept-survey-submission/accept-survey-submission.ts
+│   └── synchronize-pending-submissions/synchronize-pending-submissions.ts
+└── ports/
+    ├── survey-provider.port.ts
+    ├── survey-submission-repository.port.ts
+    ├── survey-submission-gateway.port.ts
+    ├── local-submission-store.port.ts
+    └── submission-id-generator.port.ts
 ```
 
-incluyendo:
+No se crean carpetas vacías de adapters/presentation. Las pruebas están en
+`tests/survey.test.ts`; `scripts/test-survey.mjs` compila en una carpeta temporal,
+ejecuta Node y elimina únicamente esa carpeta temporal.
 
-- archivos concretos;
-- ubicación de domain/application/ports/adapters/presentation;
-- API pública del módulo;
-- nombres definitivos de los ports;
-- DTOs de los casos de uso;
-- límites cliente/servidor;
-- estrategia de tests;
-- reglas de imports;
-- integración mínima con `src/app`.
+| Caso | Entrada y dependencias | Salida / conexión |
+|---|---|---|
+| UC-SUR-04 | `eventId`, `now`; `SurveyProvider` | `FOUND` con Survey y disponibilidad, `EVENT_NOT_FOUND` o `SURVEY_NOT_CONFIGURED` |
+| UC-SUR-05 | `survey`, `now` | `STARTED` con borrador vacío o `SURVEY_NOT_OPEN` |
+| UC-SUR-01 | `survey`, `draft`, `now`; generador, store, gateway | `INVALID_DRAFT`, `SURVEY_NOT_OPEN`, `SYNCED`, `PENDING` o `REJECTED` |
+| UC-SUR-02 | contenido tipado y `now`; provider y repository | `ACCEPTED`, `ALREADY_ACCEPTED` o `REJECTED` con motivo |
+| UC-SUR-03 | store y gateway; fábrica de sincronizador | `COMPLETED` o `INTERRUPTED` con contadores y motivo reintentable |
 
----
+La secuencia no es una llamada lineal única: Submit y Synchronize usan el mismo
+Gateway; el adaptador de transporte conectará ambos con Accept en servidor.
+Un envío online aceptado no necesita pasar por Synchronize.
 
-# 34. Próximo paso
+## 34.1. Decisiones de implementación conservadas
 
-La siguiente fase deberá responder:
+- Identificadores opacos representados mediante strings nominales y constructores;
+  el formato UUID/ULID sigue sin imponerse.
+- `SurveySchedule` encapsula milisegundos y devuelve copias de Date; el dominio
+  valida fechas y límites sin consultar relojes externos.
+- Borradores editables mediante nuevos valores; submissions congeladas junto
+  con su array de respuestas y cada respuesta. La edición posterior del borrador
+  no modifica el contenido pendiente.
+- `SurveyProvider` reúne búsqueda por evento y por survey, preservando resultados
+  diferentes para evento inexistente y encuesta sin configurar.
+- Persistencia local antes del transporte: una respuesta solo puede anunciarse
+  como pendiente durable después de resolver `savePending`.
+- `findById` reconoce aceptaciones previas antes de evaluar la ventana para una
+  inserción nueva; `saveIfAbsent` sigue siendo atómico para cerrar la carrera
+  entre consulta e inserción. No puede reemplazarse por consultar y guardar.
+- La igualdad de contenido ignora el orden de respuestas; distintos IDs siguen
+  representando participaciones distintas. Un conflicto nunca sobrescribe datos.
+- `now` sustituye a una disponibilidad aportada por el consumidor en Start/Submit:
+  se recalcula en cada acción y no se reutiliza el `OPEN` observado al cargar.
+- Gateway normaliza red/timeout a `TRANSPORT_UNAVAILABLE` y fallos temporales
+  generales a `TEMPORARY_SERVER_FAILURE`; ambos interrumpen este ciclo FIFO.
+  Los rechazos de una respuesta permiten continuar con las siguientes.
+- Los errores inesperados y fallos de almacenamiento se propagan. No equivalen
+  a éxito ni rechazo definitivo. Si falla markSynced, la respuesta sigue pendiente
+  y recupera la confirmación mediante el mismo ID, sin volver a finalizar el draft.
+- El sincronizador comparte la promesa activa y libera el bloqueo también ante
+  una excepción. La composición debe reutilizar una instancia por cliente/store.
+  No es un bloqueo entre pestañas ni entre instancias creadas por separado.
+- SYNCED/REJECTED salen del conjunto pendiente; la retención o eliminación física
+  se define en el adaptador. No se pierde otra respuesta al iniciar un nuevo draft.
 
-> ¿Cómo se traduce este modelo funcional a una estructura física de código sin añadir capas ceremoniales?
+## 34.2. API pública controlada
 
-El objetivo será proponer el árbol mínimo necesario de `src/modules/survey/`, justificando cada carpeta y cada archivo a partir de una responsabilidad ya demostrada en este documento.
+Los consumidores externos importan desde `@/modules/survey`. El índice usa
+exports nominales y `export type`, nunca `export *`. Expone los cinco casos de uso,
+sus entradas/salidas/dependencias, modelos y fábricas necesarios para construir
+inputs válidos, y contratos para implementar adaptadores. Permanecen internos
+la comparación de contenido, validadores auxiliares y creación del borrador vacío.
+
+El índice no compone dependencias ni exporta adaptadores concretos. Accept es
+puro en esta fase pero debe invocarse únicamente desde composición de servidor;
+exportarlo no autoriza su ejecución como sustituto de aceptación en el navegador.
+Cuando existan adaptadores de servidor, no se reexportarán desde este índice
+compartido con la UI. Las pruebas consumen esta API para verificar su suficiencia.
+
+## 34.3. Límites pendientes antes de producción
+
+- Validar y normalizar el cuerpo HTTP como `unknown`, IDs incluidos, antes de
+  construir los inputs tipados; los tipos nominales no validan JSON por sí solos.
+- Implementar provider, almacenamiento local durable, gateway, repositorio con
+  unicidad real y generación de IDs. Probar la atomicidad en la base de datos elegida.
+- Obtener tiempo servidor confiable para Get/Accept; definir actualización y
+  estimación de tiempo para Start/Submit offline. Pasar `now` evita un estado
+  caducado pero no convierte el reloj del navegador en una autoridad.
+- En SYNC_ONLY el servidor acepta contenido válido hasta el límite de aceptación.
+  Sin prueba de finalización previa, no puede distinguir una respuesta offline
+  legítima de una nueva creada por un cliente modificado. INV-SUR-22 queda aplicada
+  en Start/Submit; su garantía adversarial en servidor sigue pendiente de decisión.
+  No se fingirá resolverla con un timestamp del cliente.
+- Reutilizar el sincronizador, impedir doble confirmación del mismo borrador y
+  retener su submissionId para reintentos ante errores posteriores a savePending.
+  Definir coordinación entre pestañas si se requiere; la fábrica actual no la ofrece.
+- Resolver recuperación de fallos de almacenamiento, retención y backoff, validación
+  del transporte, rate limiting, composición HTTP y formulario accesible.
+- La definición de encuesta debe mantenerse recuperable para comprobar reintentos
+  de respuestas aceptadas; archivar no debe eliminarla silenciosamente.
+
+Véase `docs/architecture/decisions/ADR-009-survey-lifecycle-contracts.md`.
