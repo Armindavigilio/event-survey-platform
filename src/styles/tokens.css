@@ -4,7 +4,7 @@
   --background: #ffffff;
   --foreground: #171717;
   --font-content: var(--font-poppins), Arial, sans-serif;
-  --font-brand: var(--font-satoshi), Arial, sans-serif;
+  --font-brand: var(--font-poppins), Arial, sans-serif;/*var(--font-satoshi), Arial, sans-serif;*/
 }
 
 @media (prefers-color-scheme: dark) {

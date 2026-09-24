@@ -248,3 +248,19 @@ Follow section 54 of `docs/architecture/MASTER_ARCHITECTURE.md`.
 - Review accessibility, responsive behavior, types, lint, and proportionate behavioral checks.
 
 Modularity serves maintainability and readability; it does not by itself guarantee runtime performance.
+
+
+## 18. Survey public boundary
+
+`src/modules/survey/index.ts` exposes use cases, public inputs/results, and necessary
+models/types through explicit exports. Identifier constructors remain public so
+consumers can build nominal inputs without unsafe casts. Functional result errors
+are public contracts; internal exception classes and validation helpers are not.
+
+Do not export repository/local-store ports, other dependency port interfaces,
+aggregate factories, or concrete adapters from this shared entry point.
+Dependency parameter types may remain public for explicit composition; their
+structural references do not make this a security boundary or a fully opaque facade.
+Internal adapters and unit-test fixtures may import private ports/factories directly.
+External presentation and other modules must use the public entry point.
+Do not expand production exports merely to satisfy test imports.
