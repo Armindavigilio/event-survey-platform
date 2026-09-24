@@ -1,8 +1,9 @@
-# Documento Maestro de Arquitectura y Decisiones de Diseño
-## Landing Page para Encuesta de Eventos & Galería Visual
+
+# Event Survey Platform
+
+## Documento Maestro de Arquitectura y Decisiones de Diseño
 
 **Estado:** Aprobado como documento rector inicial  
-**Fecha:** 23 de septiembre de 2026  
 **Versión:** 1.0  
 **Ámbito:** Arquitectura, organización del código, responsabilidades, dependencias, seguridad, resiliencia, UI, persistencia e integración tecnológica.
 
