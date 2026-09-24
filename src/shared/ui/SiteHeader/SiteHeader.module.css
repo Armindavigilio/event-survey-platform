@@ -1,0 +1,18 @@
+/* src/shared/ui/SiteHeader/SiteHeader.module.css
+ * Styles the centered site identity across screen sizes. */
+.header {
+  flex-shrink: 0;
+  padding: 1.5rem 1rem;
+  background: var(--background);
+  color: var(--foreground);
+  text-align: center;
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-content);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}

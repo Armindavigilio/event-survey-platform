@@ -1,0 +1,15 @@
+/* src/styles/tokens.css
+ * Defines shared colors and semantic typography roles. */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --font-content: var(--font-poppins), Arial, sans-serif;
+  --font-brand: var(--font-satoshi), Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}

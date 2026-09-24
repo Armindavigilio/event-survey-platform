@@ -1,0 +1,62 @@
+/* src/shared/ui/SiteFooter/SiteFooter.module.css
+ * Styles the responsive footer and its accessible credit link. */
+.footer {
+  flex-shrink: 0;
+  margin-block-start: auto;
+  padding: 2rem 1rem;
+  border-block-start: 1px solid currentColor;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-content);
+  text-align: center;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  max-inline-size: 64rem;
+  margin-inline: auto;
+  overflow-wrap: anywhere;
+}
+
+.name,
+.copy,
+.credit {
+  margin: 0;
+  max-inline-size: 100%;
+  line-height: 1.5;
+}
+
+.name {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.copy,
+.credit {
+  font-size: 0.875rem;
+}
+
+.credit a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.75rem;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.credit a:hover {
+  text-decoration-thickness: 2px;
+}
+
+.credit a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
+.brand {
+  font-family: var(--font-brand);
+}

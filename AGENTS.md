@@ -229,3 +229,22 @@ Do not introduce:
 - infrastructure that is not yet required.
 
 Prefer the simplest implementation that preserves the documented boundaries.
+
+
+## 17. React modularity and composition
+
+Follow section 54 of `docs/architecture/MASTER_ARCHITECTURE.md`.
+
+- Give each component a clear presentation responsibility and an intentional name.
+- Keep feature components in their owning module; reserve shared UI for genuinely cross-cutting elements.
+- Compose pages and layouts from meaningful pieces without fragmenting trivial markup.
+- Use typed, explicit props and internal models; keep business rules outside React components and hooks.
+- Keep interaction state close to its consumers; lift it only when sharing is necessary.
+- Extract custom hooks for cohesive interaction behavior or real reuse, not as a default layer.
+- Default to Server Components and place client boundaries where interaction requires them.
+- Encapsulate visual libraries within presentation and respect public module APIs.
+- Colocate component styles; use shared typography and design tokens through their semantic roles.
+- Do not impose component line limits or add speculative abstractions or memoization.
+- Review accessibility, responsive behavior, types, lint, and proportionate behavioral checks.
+
+Modularity serves maintainability and readability; it does not by itself guarantee runtime performance.

@@ -1796,4 +1796,67 @@ Si estas preguntas no tienen una respuesta clara, la implementación debe detene
 
 ---
 
+# 54. Modularidad y composición de la presentación con React
+
+**Aclaración de los principios existentes — 24 de septiembre de 2026.**
+
+React se utilizará mediante composición de componentes con responsabilidades
+claras para facilitar la lectura, los cambios localizados y la reutilización
+justificada. Esta pauta desarrolla SRP, feature-first, encapsulación y YAGNI;
+no cambia la arquitectura ni la dirección de dependencias.
+
+## Organización y responsabilidades
+
+- Cada componente debe tener una responsabilidad de presentación identificable
+  y un nombre que exprese su intención.
+- Los componentes de una capacidad viven en su módulo. `shared/ui` se reserva
+  a elementos transversales sin un propietario funcional más adecuado.
+- Las páginas y layouts componen la experiencia. Los detalles de interacción y
+  presentación se extraen cuando tienen una responsabilidad propia.
+- Las propiedades se tipan y hacen explícitos los datos y eventos necesarios.
+  La UI recibe modelos internos, no documentos de CMS o registros de persistencia.
+- Los estilos específicos se mantienen junto al componente. Las fuentes, tokens
+  y estilos base conservan sus responsabilidades globales ya definidas.
+- Los consumidores externos usan la API pública del módulo cuando exista,
+  evitando dependencias sobre sus archivos internos.
+
+## Estado, hooks y límites tecnológicos
+
+- El estado de interacción vive en el componente más cercano que lo necesita;
+  se eleva al ancestro común solo cuando varios componentes deben compartirlo.
+- Los hooks propios se extraen cuando encapsulan una responsabilidad de React
+  clara o comportamiento reutilizado. No trasladan reglas de negocio a la UI.
+- El dominio y los casos de uso siguen independientes de React y Next.js.
+- En App Router se conserva el renderizado de servidor por defecto y se delimita
+  `use client` a las partes que necesitan interacción o APIs del navegador.
+- Las librerías visuales se encapsulan dentro de presentación. Sus tipos no
+  deben convertirse en contratos del dominio o de aplicación.
+
+## Criterio para extraer un componente
+
+Extraer cuando exista una responsabilidad diferenciada, reutilización real,
+interacción propia o una mejora concreta de legibilidad y prueba. No extraer
+por un número arbitrario de líneas ni por cada fragmento de marcado.
+
+La modularidad no exige componentes diminutos, interfaces vacías, hooks para
+todo ni carpetas anticipadas. Tampoco garantiza por sí sola mejor rendimiento:
+la memoización y otras optimizaciones deben responder a una necesidad observada.
+
+## Revisión de calidad
+
+Antes de dar por terminado un cambio de UI, verificar:
+
+- responsabilidad y ubicación claras;
+- propiedades explícitas y estado con propietario identificable;
+- dependencias compatibles con los límites del módulo y las capas;
+- estilos específicos separados de tokens y base;
+- semántica, teclado, foco y adaptación a diferentes pantallas cuando apliquen;
+- comprobación de tipos, lint y pruebas proporcionales al comportamiento modificado.
+
+Ejemplo actual: la página compone la galería, `GalleryGrid` presenta las vistas
+previas y `GalleryLightbox` concentra la integración del visor. Una biblioteca
+visual puede cambiar sin introducir dependencias en las reglas de encuesta.
+
+---
+
 # Fin del documento maestro
