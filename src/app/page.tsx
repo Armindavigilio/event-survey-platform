@@ -1,7 +1,8 @@
 // src/app/page.tsx
-// Composes the event title and gallery within the public home page.
+// Composes the event title, gallery, and temporary external survey.
 import { GalleryGrid, galleryImages } from "@/modules/gallery";
 import styles from "./page.module.css";
+import { TemporarySurveyEmbed } from "./_components/TemporarySurveyEmbed/TemporarySurveyEmbed";
 
 export default function Home() {
   return (
@@ -19,6 +20,7 @@ export default function Home() {
         </h2>
         <GalleryGrid images={galleryImages} />
       </section>
+      <TemporarySurveyEmbed />
     </main>
   );
 }

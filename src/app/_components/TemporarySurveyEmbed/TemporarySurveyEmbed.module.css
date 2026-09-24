@@ -1,0 +1,42 @@
+/* src/app/_components/TemporarySurveyEmbed/TemporarySurveyEmbed.module.css
+ * Styles the temporary embed container without altering Google's form content. */
+.section {
+  margin-block-start: 3rem;
+  font-family: var(--font-content);
+}
+
+.title {
+  margin: 0 0 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.help {
+  max-inline-size: 42rem;
+  margin: 0 auto 1.5rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.help a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.help a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
+.frame {
+  display: block;
+  inline-size: 100%;
+  max-inline-size: 48rem;
+  block-size: 3271px;
+  margin-inline: auto;
+  border: 0;
+  background: #fff;
+}
