@@ -1724,16 +1724,34 @@ Un envío online aceptado no necesita pasar por Synchronize.
 ## 34.2. API pública controlada
 
 Los consumidores externos importan desde `@/modules/survey`. El índice usa
-exports nominales y `export type`, nunca `export *`. Expone los cinco casos de uso,
-sus entradas/salidas/dependencias, modelos y fábricas necesarios para construir
-inputs válidos, y contratos para implementar adaptadores. Permanecen internos
-la comparación de contenido, validadores auxiliares y creación del borrador vacío.
+exports nominales y `export type`, nunca `export *`. La frontera expone:
 
-El índice no compone dependencias ni exporta adaptadores concretos. Accept es
-puro en esta fase pero debe invocarse únicamente desde composición de servidor;
-exportarlo no autoriza su ejecución como sustituto de aceptación en el navegador.
-Cuando existan adaptadores de servidor, no se reexportarán desde este índice
-compartido con la UI. Las pruebas consumen esta API para verificar su suficiencia.
+- los cinco casos de uso;
+- inputs, results y tipos de validación necesarios para interpretar resultados;
+- modelos y tipos necesarios para consumir la capacidad;
+- constructores de identificadores nominales como operaciones públicas de entrada;
+- tipos `*Dependencies` para composición explícita de los casos de uso.
+
+Se excluyen errores internos (clases de excepción), helpers de validación/comparación,
+fábricas de agregados/borradores, puertos de repositorio, almacenamiento local,
+provider, gateway, generador de IDs y adaptadores concretos. Los errores funcionales
+contenidos en results sí son públicos: la UI necesita poder interpretarlos.
+
+Los tipos de resultado actualmente declarados junto al gateway siguen siendo
+contratos públicos de aplicación; exportarlos no exporta `SurveySubmissionGateway`.
+Los tipos `*Dependencies` describen estructuralmente puertos internos: el índice
+reduce exports directos, pero no los vuelve inaccesibles por reflexión de tipos.
+No es una frontera de seguridad ni una fachada que oculte la inyección.
+
+Los adaptadores del propio módulo pueden importar sus puertos internamente.
+Las pruebas unitarias pueden importar fábricas y puertos para construir fixtures
+y dobles en memoria; invocan los casos de uso desde el índice público. Esta excepción
+no autoriza imports internos desde otros módulos o desde presentación externa.
+La composición futura deberá resolverse en el borde con una entrada específica
+cuando existan adaptadores reales, sin reexportarlos desde este índice compartido.
+
+Accept debe invocarse desde composición de servidor; su exportación no permite
+sustituir la aceptación autoritativa por una llamada ejecutada en el navegador.
 
 ## 34.3. Límites pendientes antes de producción
 
