@@ -11,8 +11,9 @@
 .name {
   margin: 0;
   font-family: var(--font-content);
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 300;
   line-height: 1.5;
   overflow-wrap: anywhere;
+  color: rgb(249, 249, 249);
 }
