@@ -4,7 +4,7 @@
   width: 100%;
   max-width: 72rem;
   margin-inline: auto;
-  padding: 3rem 1.25rem;
+  padding: 0rem 1.25rem;
   flex: 1;
   font-family: var(--font-content);
 }
